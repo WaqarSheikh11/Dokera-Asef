@@ -26,12 +26,114 @@ const specialtyColor = (() => {
   };
 })();
 
+// ── LocalStorage Mock Backend for Vercel ──────────────
+const DB_KEY = 'dokera_jobs';
+function getStoredJobs() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || []; }
+  catch(e) { return []; }
+}
+function saveStoredJobs(jobsArray) {
+  localStorage.setItem(DB_KEY, JSON.stringify(jobsArray));
+}
+function generateNextId(jobsArray) {
+  return jobsArray.reduce((max, j) => Math.max(max, j.id), 0) + 1;
+}
+
 // ── Helpers ──────────────────────────────────────────
 const API_FETCH = async (url, opts = {}) => {
-  const r = await fetch(url, { headers: {'Content-Type':'application/json'}, ...opts });
-  const d = await r.json();
-  if (!r.ok) throw d;
-  return d;
+  // Simulate a realistic network delay for smooth loading states
+  await new Promise(r => setTimeout(r, 400));
+
+  const method = opts.method || 'GET';
+  const body = opts.body ? JSON.parse(opts.body) : null;
+  let currentJobs = getStoredJobs();
+  const now = () => new Date().toISOString();
+
+  const isBase = url === '/api/jobs';
+  const matchId = url.match(/^\/api\/jobs\/(\d+)(?:\/(.*))?$/);
+
+  // GET /api/jobs
+  if (method === 'GET' && isBase) {
+    return [...currentJobs].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+
+  // POST /api/jobs
+  if (method === 'POST' && isBase) {
+    const titleLower = body.title?.toLowerCase() || '';
+    const specLower = body.specialty?.toLowerCase() || '';
+    const duplicate = currentJobs.find(j => j.title.toLowerCase() === titleLower && j.specialty.toLowerCase() === specLower);
+    
+    if (duplicate) {
+      throw { errors: [{ field: 'title', message: `A job post with this title already exists in "${body.specialty}". Please use a distinct title.` }] };
+    }
+
+    const job = {
+      ...body,
+      id: generateNextId(currentJobs),
+      created_at: now(),
+      updated_at: now(),
+    };
+    if (!job.status) job.status = 'Draft';
+    currentJobs.push(job);
+    saveStoredJobs(currentJobs);
+    return job;
+  }
+
+  if (matchId) {
+    const id = Number(matchId[1]);
+    const action = matchId[2];
+    const index = currentJobs.findIndex(j => j.id === id);
+    const job = currentJobs[index];
+
+    if (index === -1) throw { error: 'Job post not found' };
+
+    // DELETE /api/jobs/:id
+    if (method === 'DELETE' && !action) {
+      const deleted = currentJobs.splice(index, 1)[0];
+      saveStoredJobs(currentJobs);
+      return { message: 'Deleted', id: deleted.id };
+    }
+
+    // PUT /api/jobs/:id
+    if (method === 'PUT' && !action) {
+      const titleLower = body.title?.toLowerCase() || '';
+      const specLower = body.specialty?.toLowerCase() || '';
+      const duplicate = currentJobs.find(j => j.id !== id && j.title.toLowerCase() === titleLower && j.specialty.toLowerCase() === specLower);
+      
+      if (duplicate) {
+        throw { errors: [{ field: 'title', message: `A job post with this title already exists in "${body.specialty}". Please use a distinct title.` }] };
+      }
+
+      currentJobs[index] = { ...job, ...body, updated_at: now() };
+      saveStoredJobs(currentJobs);
+      return currentJobs[index];
+    }
+
+    // PATCH /api/jobs/:id/status
+    if (method === 'PATCH' && action === 'status') {
+      currentJobs[index].status = body.status;
+      currentJobs[index].updated_at = now();
+      saveStoredJobs(currentJobs);
+      return currentJobs[index];
+    }
+
+    // POST /api/jobs/:id/duplicate
+    if (method === 'POST' && action === 'duplicate') {
+      const copy = {
+        ...job,
+        id: generateNextId(currentJobs),
+        title: `${job.title} (Copy)`,
+        status: 'Draft',
+        created_at: now(),
+        updated_at: now()
+      };
+      currentJobs.push(copy);
+      saveStoredJobs(currentJobs);
+      return copy;
+    }
+  }
+
+  throw { error: 'Route not found' };
 };
 
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
