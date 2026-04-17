@@ -16,7 +16,7 @@ await db.read();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, 'src')));
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const VALID_STATUSES  = ['Draft', 'Open', 'Closed'];
