@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dokera — Job Posts Dashboard</title>
+  <meta name="description" content="Hospital administrator dashboard for managing healthcare job posts." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════ SIDEBAR ══════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 3v16M3 11h16" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">Dokera</span>
+      <button class="sidebar-collapse" id="btn-collapse" aria-label="Collapse sidebar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Main navigation">
+      <div class="nav-section-label">Main</div>
+      <a href="#" class="nav-item active" id="nav-dashboard" data-view="dashboard">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".9"/><rect x="11" y="2" width="7" height="7" rx="1.5" fill="currentColor" opacity=".5"/><rect x="2" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity=".5"/><rect x="11" y="11" width="7" height="7" rx="1.5" fill="currentColor" opacity=".3"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-jobs" data-view="jobs">
+        <svg class="nav-icon" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.6"/><path d="M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span>Job Posts</span>
+        <span class="nav-badge" id="nav-open-count">0</span>
+      </a>
+
+    </nav>
+  </aside>
+
+  <!-- ══════════════════════════ MAIN ══════════════════════════ -->
+  <div class="layout-body" id="layout-body">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="btn-icon-topbar" id="btn-mobile-toggle" aria-label="Toggle menu">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <div class="topbar-search">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="#9CA3AF" stroke-width="1.5"/><path d="M10 10l3 3" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="search" id="global-search" placeholder="Search job posts…" autocomplete="off" />
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="notif-wrapper">
+          <button class="topbar-icon-btn" id="btn-notif" title="Notifications" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a5 5 0 0 1 5 5v3l1.5 2.5H2.5L4 10V7a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.6"/><path d="M7 14.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span class="notif-dot" id="notif-dot"></span>
+          </button>
+          <div class="notif-dropdown hidden" id="notif-dropdown" role="menu">
+            <div class="notif-header">
+              <h3>Notifications</h3>
+              <button class="notif-clear" id="notif-clear">Mark all read</button>
+            </div>
+            <div class="notif-list" id="notif-list"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="btn-open-modal" aria-label="Create new job post">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>
+          New Job Post
+        </button>
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="page-content">
+
+      <!-- ── DASHBOARD VIEW ── -->
+      <section id="view-dashboard" class="view active-view">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Overview of all hospital job postings</p>
+          </div>
+          <div class="page-header-date" id="header-date"></div>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="kpi-grid" id="kpi-grid">
+          <div class="kpi-card kpi-total">
+            <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="currentColor" stroke-width="1.6"/></svg></div>
+            <div class="kpi-body">
+              <div class="kpi-value" id="kpi-total">0</div>
+              <div class="kpi-label">Total Posts</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-open">
+            <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="kpi-body">
+              <div class="kpi-value" id="kpi-open">0</div>
+              <div class="kpi-label">Open Positions</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-draft">
+            <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 14l9-9 3 3-9 9H4v-3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+            <div class="kpi-body">
+              <div class="kpi-value" id="kpi-draft">0</div>
+              <div class="kpi-label">Drafts</div>
+            </div>
+          </div>
+          <div class="kpi-card kpi-closed">
+            <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.6"/><path d="M7 10h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+            <div class="kpi-body">
+              <div class="kpi-value" id="kpi-closed">0</div>
+              <div class="kpi-label">Closed</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom panels -->
+        <div class="dashboard-panels">
+          <!-- Recent posts -->
+          <div class="panel panel-recent">
+            <div class="panel-header">
+              <h2 class="panel-title">Recent Job Posts</h2>
+              <button class="btn-link" id="btn-view-all">View all →</button>
+            </div>
+            <div id="recent-list"></div>
+          </div>
+
+          <!-- Right column -->
+          <div class="panel-right-col">
+            <!-- Donut chart -->
+            <div class="panel panel-chart">
+              <div class="panel-header">
+                <h2 class="panel-title">Status Breakdown</h2>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="status-chart" width="180" height="180"></canvas>
+                <div class="chart-legend" id="chart-legend"></div>
+              </div>
+            </div>
+
+            <!-- Specialty breakdown -->
+            <div class="panel panel-specialty">
+              <div class="panel-header">
+                <h2 class="panel-title">By Department</h2>
+              </div>
+              <div id="specialty-bars"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── JOB POSTS VIEW ── -->
+      <section id="view-jobs" class="view">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Job Posts</h1>
+            <p class="page-subtitle">Manage and update all hospital positions</p>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+          <div class="filter-tabs" id="filter-tabs" role="tablist">
+            <button class="filter-tab active" data-status="all" role="tab">All</button>
+            <button class="filter-tab" data-status="Open" role="tab">Open</button>
+            <button class="filter-tab" data-status="Draft" role="tab">Draft</button>
+            <button class="filter-tab" data-status="Closed" role="tab">Closed</button>
+          </div>
+          <div class="filter-actions">
+            <select id="filter-specialty" class="filter-select" aria-label="Filter by specialty">
+              <option value="">All Departments</option>
+            </select>
+            <select id="filter-schedule" class="filter-select" aria-label="Filter by schedule">
+              <option value="">All Schedules</option>
+              <option>Full-time</option>
+              <option>Part-time</option>
+              <option>Locum</option>
+              <option>Contract</option>
+              <option>Per Diem</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+          <table class="jobs-table" role="grid" aria-label="Job posts table">
+            <thead>
+              <tr>
+                <th>Job Title</th>
+                <th>Department</th>
+                <th>Location</th>
+                <th>Schedule</th>
+                <th>Status</th>
+                <th>Posted</th>
+                <th class="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-table-body"></tbody>
+          </table>
+          <div id="table-empty" class="table-empty hidden">
+            <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="#F3F4F6"/><path d="M14 26V16a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10M12 26h16" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/><path d="M17 14v-2h6v2" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <p class="table-empty-title">No job posts found</p>
+            <p class="table-empty-sub">Try changing filters or create a new post.</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════ CREATE / EDIT MODAL ══════════════════════════ -->
+  <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <div>
+          <h2 id="modal-title" class="modal-heading">New Job Post</h2>
+          <p id="modal-sub" class="modal-sub">Fill in the details below. Fields marked <span class="req">*</span> are required.</p>
+        </div>
+        <button id="btn-close-modal" class="btn-modal-close" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <form id="job-form" novalidate autocomplete="off">
+        <input type="hidden" id="field-id" />
+        <div class="form-grid">
+
+          <!-- Job Title -->
+          <div class="field field-full" id="wrap-title">
+            <label for="field-title">Job Title <span class="req">*</span></label>
+            <div class="field-input-wrap">
+              <input id="field-title" type="text" placeholder="e.g. Senior Cardiologist"
+                maxlength="120" autocomplete="off"
+                aria-required="true" aria-describedby="err-title hint-title" />
+              <span class="field-status-icon" aria-hidden="true"></span>
+            </div>
+            <div class="field-footer">
+              <span class="field-error hidden" id="err-title" role="alert"></span>
+              <span class="char-counter" id="cnt-title" aria-live="polite">0 / 120</span>
+            </div>
+            <span class="field-hint" id="hint-title">Minimum 3 characters. Be specific (e.g. "Senior Cardiologist", not "Doctor").</span>
+          </div>
+
+          <!-- Specialty -->
+          <div class="field" id="wrap-specialty">
+            <label for="field-specialty">Specialty / Department <span class="req">*</span></label>
+            <div class="field-input-wrap">
+              <select id="field-specialty" aria-required="true" aria-describedby="err-specialty">
+                <option value="">Select department…</option>
+                <option>Internal Medicine</option><option>Cardiology</option><option>Neurology</option>
+                <option>Orthopedics</option><option>Pediatrics</option><option>Oncology</option>
+                <option>Emergency Medicine</option><option>Radiology</option><option>Anesthesiology</option>
+                <option>Surgery</option><option>Psychiatry</option>
+                <option>Obstetrics &amp; Gynecology</option><option>Dermatology</option>
+                <option>Nursing</option><option>Administration</option><option>Other</option>
+              </select>
+              <span class="field-status-icon" aria-hidden="true"></span>
+            </div>
+            <span class="field-error hidden" id="err-specialty" role="alert"></span>
+          </div>
+
+          <!-- Location -->
+          <div class="field" id="wrap-location">
+            <label for="field-location">Location <span class="req">*</span></label>
+            <div class="field-input-wrap">
+              <input id="field-location" type="text" placeholder="e.g. Karachi, PK"
+                maxlength="100" autocomplete="off"
+                aria-required="true" aria-describedby="err-location hint-location" />
+              <span class="field-status-icon" aria-hidden="true"></span>
+            </div>
+            <div class="field-footer">
+              <span class="field-error hidden" id="err-location" role="alert"></span>
+            </div>
+            <span class="field-hint" id="hint-location">Use "City, Country" format (e.g. Lahore, PK).</span>
+          </div>
+
+          <!-- Schedule -->
+          <div class="field" id="wrap-schedule">
+            <label for="field-schedule">Schedule Type</label>
+            <div class="field-input-wrap">
+              <select id="field-schedule" aria-describedby="hint-schedule">
+                <option value="">Select schedule…</option>
+                <option>Full-time</option><option>Part-time</option>
+                <option>Locum</option><option>Contract</option><option>Per Diem</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Compensation -->
+          <div class="field" id="wrap-compensation">
+            <label for="field-compensation">Compensation</label>
+            <div class="field-input-wrap">
+              <input id="field-compensation" type="text" placeholder="e.g. PKR 300,000/mo"
+                maxlength="80" autocomplete="off" aria-describedby="hint-compensation err-compensation" />
+              <span class="field-status-icon" aria-hidden="true"></span>
+            </div>
+            <span class="field-error hidden" id="err-compensation" role="alert"></span>
+            <span class="field-hint" id="hint-compensation">Include currency and period (e.g. PKR 250,000/month or $80/hr).</span>
+          </div>
+
+          <!-- Start Date -->
+          <div class="field" id="wrap-start-date">
+            <label for="field-start-date">Start Date</label>
+            <input id="field-start-date" type="date" aria-describedby="hint-start-date err-start-date" />
+            <span class="field-error hidden" id="err-start-date" role="alert"></span>
+            <span class="field-hint" id="hint-start-date">Leave blank if flexible or not yet determined.</span>
+          </div>
+
+          <!-- Status -->
+          <div class="field" id="wrap-status">
+            <label for="field-status">Status</label>
+            <div class="field-input-wrap">
+              <select id="field-status" aria-describedby="hint-status err-status">
+                <option value="Draft">Draft</option>
+                <option value="Open">Open</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
+            <span class="field-error hidden" id="err-status" role="alert"></span>
+            <span class="field-hint" id="hint-status">
+              <strong>Open</strong> requires Title, Specialty and Location to be filled.
+            </span>
+          </div>
+
+          <!-- Description -->
+          <div class="field field-full" id="wrap-description">
+            <label for="field-description">Description</label>
+            <textarea id="field-description" rows="4"
+              placeholder="Role overview, responsibilities, required qualifications, certifications, benefits…"
+              maxlength="2000" aria-describedby="err-description hint-description"></textarea>
+            <div class="field-footer">
+              <span class="field-error hidden" id="err-description" role="alert"></span>
+              <span class="char-counter" id="cnt-description" aria-live="polite">0 / 2000</span>
+            </div>
+          </div>
+
+        </div><!-- /.form-grid -->
+
+        <div id="form-errors" class="form-errors hidden" role="alert" aria-live="assertive"></div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel" class="btn btn-ghost">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit">Save Job Post</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ DETAIL MODAL ══════════════════════════ -->
+  <div id="detail-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="detail-title">
+    <div class="modal modal-detail">
+      <div class="modal-header">
+        <div>
+          <h2 id="detail-title" class="modal-heading">Job Post</h2>
+          <p class="modal-sub" id="detail-subtitle"></p>
+        </div>
+        <button id="btn-close-detail" class="btn-modal-close" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="detail-content"></div>
+      <div class="modal-footer" id="detail-footer"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ TOAST ══════════════════════════ -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- ══════════════════════════ CONFIRM DIALOG ══════════════════════════ -->
+  <div id="confirm-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal confirm-modal">
+      <div class="confirm-icon-wrap" id="confirm-icon-wrap">
+        <!-- icon injected by JS -->
+      </div>
+      <h2 id="confirm-title" class="confirm-title">Are you sure?</h2>
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="confirm-actions">
+        <button id="confirm-cancel-btn" class="btn btn-ghost">Cancel</button>
+        <button id="confirm-ok-btn" class="btn btn-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
